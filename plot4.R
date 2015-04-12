@@ -1,0 +1,69 @@
+# Data source description:
+# - provider: UC Irvine Machine Learning Repository
+# - content: Individual household electric power consumption data set
+# - last modification: 16-Oct-2012 11:06
+# - size: 20M
+# - zip file (size 20 Mb) named:
+zipFileName <- "household_power_consumption.zip"
+# - is available at:
+zipFilePath <- "https://archive.ics.uci.edu/ml/machine-learning-databases/00235/"
+# - and contains a text file named:
+txtFileName <- "household_power_consumption.txt"
+
+# Load the data from UCI repository if not available in the working directory:
+if(!file.exists(txtFileName)) {
+        if(!file.exists(zipFileName)) {
+                download.file(paste(zipFilePath,zipFileName,sep=""),zipFileName) 
+        }
+        unzip(zipFileName)
+        file.remove(zipFileName)
+}
+fileUrl <- txtFileName
+
+# The dataset is very large but only specific rows (having dates 2007-02-01 and 
+# 2007-02-02) are to be retrieved.
+# Read the first row to retrieve the column names 
+df.row1 <- read.table(fileUrl, header = TRUE, sep=";",nrows=1)
+df.colnames <- colnames(df.row1)
+# Read all rows but with just the 1st column which is the date
+df.date <- read.table(fileUrl, header = TRUE, sep=";",as.is=TRUE, 
+                      colClasses = c(NA, rep("NULL",8)))
+# Retrieve the index of consecutives rows having the requested dates:
+df.index <- which(df.date=="1/2/2007" | df.date=="2/2/2007")
+# Retrieve the data frame for the requested index only:
+df <- read.table(fileUrl, header = TRUE, sep=";",col.names=df.colnames,
+                 na.strings="?", skip = df.index[1]-1, nrows=length(df.index))
+# Create a DateTime variable from the Date and Time variables:
+df$DateTime <- strptime(paste(df$Date,df$Time),"%d/%m/%Y %H:%M:%S")
+
+# Select the png graphics device
+png(filename = "plot4.png")
+# Save old par
+oldpar <- par
+# Set mfrow for current par
+par(mfcol=c(2,2))
+# Create the requested plots
+# top left plot
+plot(df$DateTime,df$Global_active_power, type="l",main = "",
+     xlab = "", ylab = "Global Active Power")
+# bottom left plot
+plot(df$DateTime,df$Sub_metering_1, type="n",main = "", xlab = "",
+     ylab = "Energy sub metering")
+lines(df$DateTime,df$Sub_metering_1,col="black")
+lines(df$DateTime,df$Sub_metering_2,col="red")
+lines(df$DateTime,df$Sub_metering_3,col="blue")
+legend("topright",
+       legend=c("Sub_metering_1","Sub_metering_2","Sub_metering_3"),
+       lwd=1, col=c("black","red","blue"), bty="n")
+# top right plot
+plot(df$DateTime,df$Voltage, type="l",main = "",
+     xlab = "datetime", ylab = "Voltage")
+# bottom right plot
+plot(df$DateTime,df$Global_reactive_power, type="l",main = "",
+     xlab = "datetime", ylab = "Global_reactive_power")
+
+# Shut down the png device
+dev.off()
+# Restore old par
+par <- oldpar
+### End Of File ###
